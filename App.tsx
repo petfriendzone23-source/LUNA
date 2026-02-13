@@ -113,7 +113,6 @@ const App: React.FC = () => {
     }
   }, [newPeriodStart, newPeriodEnd]);
 
-  // Handle manual duration change
   const handleDurationChange = (val: number) => {
     setNewPeriodDuration(val);
     if (newPeriodStart) {
@@ -121,34 +120,6 @@ const App: React.FC = () => {
       setNewPeriodEnd(format(newEnd, 'yyyy-MM-dd'));
     }
   };
-
-  // Notification Logic with Safety Checks
-  useEffect(() => {
-    const isSupported = typeof window !== 'undefined' && "Notification" in window;
-    if (stats && profile.notificationsEnabled && isSupported && Notification.permission === 'granted') {
-      const checkNotifications = () => {
-        const lastNotified = localStorage.getItem('luna_last_notification_date');
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-        if (lastNotified !== todayStr) {
-          if (stats.daysToNextPeriod >= 0 && stats.daysToNextPeriod <= 2) {
-            try {
-              new Notification("Luna: Ciclo Próximo", {
-                body: stats.daysToNextPeriod === 0 
-                  ? "Sua menstruação é prevista para hoje! ✨" 
-                  : `Sua menstruação está prevista para daqui a ${stats.daysToNextPeriod} ${stats.daysToNextPeriod === 1 ? 'dia' : 'dias'}. Prepare-se!`,
-                icon: 'https://cdn-icons-png.flaticon.com/512/591/591576.png'
-              });
-              localStorage.setItem('luna_last_notification_date', todayStr);
-            } catch (e) {
-              console.warn("Falha ao disparar notificação nativa:", e);
-            }
-          }
-        }
-      };
-      checkNotifications();
-    }
-  }, [stats, profile.notificationsEnabled]);
 
   const requestNotificationPermission = async () => {
     if (!("Notification" in window)) {
@@ -321,7 +292,7 @@ const App: React.FC = () => {
         ) : (
           <div className="text-center py-10 animate-pulse relative z-10">
             <p className="text-lg font-bold">Olá{profile.name ? `, ${profile.name}` : ''}!</p>
-            <p className="text-sm opacity-80 mt-1 px-8 leading-relaxed">Adicione sua última menstruação para começar a acompanhar seu ciclo.</p>
+            <p className="text-sm opacity-80 mt-1 px-8 leading-relaxed">Adicione seu ciclo para começar o acompanhamento.</p>
           </div>
         )}
         
@@ -332,21 +303,6 @@ const App: React.FC = () => {
       <main className="px-4 -mt-8 space-y-6 relative z-20">
         {activeTab === 'home' && (
           <>
-            {!profile.notificationsEnabled && stats && (
-              <button 
-                onClick={requestNotificationPermission}
-                className="w-full bg-white p-4 rounded-3xl border border-pink-100 flex items-center gap-4 shadow-sm hover:bg-pink-50/30 transition-colors"
-              >
-                <div className="bg-pink-100 text-pink-500 w-10 h-10 rounded-2xl flex items-center justify-center shrink-0">
-                  <i className="fas fa-bell"></i>
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-black text-gray-800 uppercase tracking-tighter">Ativar Notificações?</p>
-                  <p className="text-[10px] text-gray-400 font-bold">Receba alertas antes da sua menstruação chegar.</p>
-                </div>
-              </button>
-            )}
-
             {stats && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-pink-100 flex flex-col items-center text-center">
@@ -437,13 +393,11 @@ const App: React.FC = () => {
                       <span className={`text-sm font-bold ${isToday && isPeriod ? 'underline decoration-2 underline-offset-2' : ''}`}>
                         {format(day, 'd')}
                       </span>
-                      
                       {isOvulation && (
                         <div className="absolute -top-1 -right-1 text-[10px] text-purple-500 drop-shadow-sm">
                           <i className="fas fa-heart animate-pulse"></i>
                         </div>
                       )}
-
                       {hasNote && (
                         <div className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isPeriod ? 'bg-white' : 'bg-pink-300'} shadow-sm`}></div>
                       )}
@@ -501,7 +455,7 @@ const App: React.FC = () => {
                             {format(parseISO(entry.startDate), "dd 'de' MMMM yyyy", { locale: ptBR })}
                           </p>
                           <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter">
-                            Início • Duração: {entry.duration} dias
+                            Duração: {entry.duration} dias
                           </p>
                         </div>
                       </div>
@@ -534,7 +488,6 @@ const App: React.FC = () => {
                            <i className="far fa-trash-alt"></i>
                         </button>
                       </div>
-                      
                       {note.symptoms && note.symptoms.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                           {note.symptoms.map(sId => {
@@ -547,7 +500,6 @@ const App: React.FC = () => {
                           })}
                         </div>
                       )}
-                      
                       {note.notes && (
                         <p className="text-sm text-gray-600 italic bg-gray-50/50 p-3 rounded-2xl border-l-4 border-pink-200">
                           "{note.notes}"
@@ -589,16 +541,6 @@ const App: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Idade</label>
-                    <input 
-                      type="number"
-                      placeholder="Ex: 25"
-                      value={tempProfile.age}
-                      onChange={(e) => setTempProfile({...tempProfile, age: e.target.value})}
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-2 ring-gray-100 focus:ring-pink-200 outline-none font-bold text-gray-700"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Objetivo</label>
                     <select 
                       value={tempProfile.goal}
@@ -612,7 +554,7 @@ const App: React.FC = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Ciclo Médio (Dias baseline)</label>
+                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Ciclo Médio (Dias)</label>
                       <input 
                         type="number"
                         value={tempProfile.defaultCycleLength}
@@ -621,7 +563,7 @@ const App: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Período Médio (Dias baseline)</label>
+                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Período Médio (Dias)</label>
                       <input 
                         type="number"
                         value={tempProfile.defaultPeriodLength}
@@ -630,33 +572,10 @@ const App: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
-                  <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl mt-4">
-                    <div>
-                      <p className="text-xs font-black uppercase text-gray-700">Notificações</p>
-                      <p className="text-[9px] font-bold text-gray-400">Alertar antes da menstruação</p>
-                    </div>
-                    <button 
-                      onClick={() => {
-                        if (!tempProfile.notificationsEnabled) {
-                           requestNotificationPermission();
-                        } else {
-                           setTempProfile({ ...tempProfile, notificationsEnabled: false });
-                        }
-                      }}
-                      className={`w-12 h-6 rounded-full relative transition-colors ${tempProfile.notificationsEnabled ? 'bg-pink-400' : 'bg-gray-200'}`}
-                    >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${tempProfile.notificationsEnabled ? 'left-7' : 'left-1'}`}></div>
-                    </button>
-                  </div>
                 </div>
-
                 <div className="flex gap-3">
                   <button 
-                    onClick={() => {
-                      setIsEditingProfile(false);
-                      setTempProfile(profile);
-                    }}
+                    onClick={() => { setIsEditingProfile(false); setTempProfile(profile); }}
                     className="flex-1 py-4 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-colors"
                   >
                     Cancelar
@@ -677,43 +596,24 @@ const App: React.FC = () => {
                   </div>
                   <div>
                       <h3 className="text-2xl font-black text-gray-800">{profile.name || "Usuária Luna"}</h3>
-                      <p className="text-sm font-bold text-pink-400 uppercase tracking-widest">
-                        {profile.age ? `${profile.age} anos • ` : ''} {getGoalLabel(profile.goal)}
-                      </p>
+                      <p className="text-sm font-bold text-pink-400 uppercase tracking-widest">{getGoalLabel(profile.goal)}</p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-pink-50/50 p-4 rounded-3xl">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Ponderada Ciclo</p>
+                    <div className="bg-pink-50/50 p-4 rounded-3xl text-center">
+                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Ciclo</p>
                       <p className="text-2xl font-black text-gray-800">{stats?.averageCycleLength || profile.defaultCycleLength} <span className="text-sm font-bold">dias</span></p>
                     </div>
-                    <div className="bg-blue-50/50 p-4 rounded-3xl">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Ponderada Período</p>
+                    <div className="bg-blue-50/50 p-4 rounded-3xl text-center">
+                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Fluxo</p>
                       <p className="text-2xl font-black text-gray-800">{stats?.averagePeriodLength || profile.defaultPeriodLength} <span className="text-sm font-bold">dias</span></p>
                     </div>
                 </div>
-
-                <div className="bg-gray-50/50 p-5 rounded-3xl flex items-center justify-between">
-                   <div className="flex items-center gap-3">
-                      <i className={`fas fa-bell ${profile.notificationsEnabled ? 'text-pink-400' : 'text-gray-300'}`}></i>
-                      <span className="text-xs font-bold text-gray-600">Notificações</span>
-                   </div>
-                   <span className={`text-[10px] font-black uppercase ${profile.notificationsEnabled ? 'text-pink-500' : 'text-gray-400'}`}>
-                      {profile.notificationsEnabled ? 'Ativadas' : 'Desativadas'}
-                   </span>
-                </div>
-
                 <button 
-                    onClick={() => {
-                      if (window.confirm("Deseja apagar todos os dados e começar de novo?")) {
-                        localStorage.clear();
-                        window.location.reload();
-                      }
-                    }}
+                    onClick={() => { if (window.confirm("Apagar todos os dados permanentemente?")) { localStorage.clear(); window.location.reload(); } }}
                     className="w-full py-4 rounded-2xl text-red-400 font-bold hover:bg-red-50 transition-colors border-2 border-red-50"
                 >
-                  Limpar Todos os Dados
+                  Limpar Dados Locais
                 </button>
               </div>
             )}
@@ -722,31 +622,16 @@ const App: React.FC = () => {
       </main>
 
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 backdrop-blur-xl border-t border-gray-100 px-10 py-5 flex justify-between items-center rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] z-50">
-        <button 
-          onClick={() => setActiveTab('home')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}
-        >
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'home' ? 'bg-pink-50' : ''}`}>
-            <i className="fas fa-house-user text-xl"></i>
-          </div>
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'home' ? 'bg-pink-50' : ''}`}><i className="fas fa-house-user text-xl"></i></div>
           <span className="text-[9px] font-black uppercase tracking-tighter">Início</span>
         </button>
-        <button 
-          onClick={() => setActiveTab('history')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}
-        >
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'history' ? 'bg-pink-50' : ''}`}>
-            <i className="fas fa-calendar-alt text-xl"></i>
-          </div>
+        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'history' ? 'bg-pink-50' : ''}`}><i className="fas fa-calendar-alt text-xl"></i></div>
           <span className="text-[9px] font-black uppercase tracking-tighter">Histórico</span>
         </button>
-        <button 
-          onClick={() => setActiveTab('profile')}
-          className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'profile' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}
-        >
-          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'profile' ? 'bg-pink-50' : ''}`}>
-            <i className="fas fa-user text-xl"></i>
-          </div>
+        <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'profile' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'profile' ? 'bg-pink-50' : ''}`}><i className="fas fa-user text-xl"></i></div>
           <span className="text-[9px] font-black uppercase tracking-tighter">Perfil</span>
         </button>
       </nav>
@@ -761,44 +646,23 @@ const App: React.FC = () => {
             <div className="space-y-5 mb-8">
               <div>
                 <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Início</label>
-                <input 
-                  type="date" 
-                  value={newPeriodStart}
-                  onChange={(e) => setNewPeriodStart(e.target.value)}
-                  className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700"
-                />
+                <input type="date" value={newPeriodStart} onChange={(e) => setNewPeriodStart(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Término</label>
-                  <input 
-                    type="date" 
-                    value={newPeriodEnd}
-                    onChange={(e) => setNewPeriodEnd(e.target.value)}
-                    className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700"
-                  />
+                  <input type="date" value={newPeriodEnd} onChange={(e) => setNewPeriodEnd(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Duração</label>
                   <div className="flex items-center bg-pink-50/50 rounded-2xl border-2 border-pink-50 px-4">
-                    <input 
-                      type="number" 
-                      value={newPeriodDuration}
-                      onChange={(e) => handleDurationChange(parseInt(e.target.value) || 1)}
-                      className="w-full py-4 bg-transparent outline-none font-bold text-gray-700"
-                      min="1"
-                    />
+                    <input type="number" value={newPeriodDuration} onChange={(e) => handleDurationChange(parseInt(e.target.value) || 1)} className="w-full py-4 bg-transparent outline-none font-bold text-gray-700" min="1" />
                     <span className="text-[10px] font-black text-pink-300 uppercase">Dias</span>
                   </div>
                 </div>
               </div>
             </div>
-            <button 
-              onClick={addEntry} 
-              className="w-full py-5 gradient-pink text-white font-black rounded-3xl shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg"
-            >
-              Salvar Período
-            </button>
+            <button onClick={addEntry} className="w-full py-5 gradient-pink text-white font-black rounded-3xl shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg">Salvar Período</button>
           </div>
         </div>
       )}
@@ -807,26 +671,15 @@ const App: React.FC = () => {
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-md">
           <div className="bg-white w-full max-w-md rounded-t-[3.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-400 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-8">
-              <div>
-                <h2 className="text-2xl font-black text-gray-800 tracking-tight">Como você está?</h2>
-                <p className="text-sm text-pink-500 font-bold uppercase tracking-widest mt-1">
-                  {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                </p>
-              </div>
-              <button onClick={() => setShowNoteModal(false)} className="w-10 h-10 rounded-2xl bg-gray-50 text-gray-300 hover:text-gray-500 flex items-center justify-center transition-colors">
-                <i className="fas fa-times"></i>
-              </button>
+              <div><h2 className="text-2xl font-black text-gray-800 tracking-tight">Saúde Hoje</h2><p className="text-sm text-pink-500 font-bold uppercase tracking-widest mt-1">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p></div>
+              <button onClick={() => setShowNoteModal(false)} className="w-10 h-10 rounded-2xl bg-gray-50 text-gray-300 hover:text-gray-500 flex items-center justify-center transition-colors"><i className="fas fa-times"></i></button>
             </div>
             <div className="space-y-8">
               <div>
-                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Humor (Emojis)</label>
+                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Humor</label>
                 <div className="grid grid-cols-5 gap-y-4 gap-x-2 bg-pink-50/30 p-4 rounded-[2.5rem]">
                   {MOODS.map(m => (
-                    <button 
-                      key={m.emoji} 
-                      onClick={() => setSelectedMood(m.emoji)}
-                      className={`group flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all ${selectedMood === m.emoji ? 'bg-white shadow-md scale-110 ring-2 ring-pink-100' : 'opacity-40 hover:opacity-100 hover:scale-105'}`}
-                    >
+                    <button key={m.emoji} onClick={() => setSelectedMood(m.emoji)} className={`group flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all ${selectedMood === m.emoji ? 'bg-white shadow-md scale-110 ring-2 ring-pink-100' : 'opacity-40 hover:opacity-100 hover:scale-105'}`}>
                       <span className="text-3xl filter drop-shadow-sm">{m.emoji}</span>
                       <span className="text-[8px] font-black uppercase text-center leading-tight text-gray-500">{m.label}</span>
                     </button>
@@ -837,33 +690,17 @@ const App: React.FC = () => {
                 <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Sintomas</label>
                 <div className="grid grid-cols-2 gap-3">
                   {SYMPTOMS_LIST.map(symp => (
-                    <button 
-                      key={symp.id} 
-                      onClick={() => toggleSymptom(symp.id)}
-                      className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 font-bold text-xs
-                        ${selectedSymptoms.includes(symp.id) ? 'bg-pink-100 border-pink-200 text-pink-600' : 'bg-white border-gray-50 text-gray-400 hover:bg-gray-50'}`}
-                    >
-                      <i className={`fas ${symp.icon}`}></i>
-                      {symp.label}
+                    <button key={symp.id} onClick={() => toggleSymptom(symp.id)} className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 font-bold text-xs ${selectedSymptoms.includes(symp.id) ? 'bg-pink-100 border-pink-200 text-pink-600' : 'bg-white border-gray-50 text-gray-400 hover:bg-gray-50'}`}>
+                      <i className={`fas ${symp.icon}`}></i>{symp.label}
                     </button>
                   ))}
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Diário</label>
-                <textarea 
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Escreva como se sente..."
-                  className="w-full p-5 bg-gray-50/50 rounded-3xl border-2 border-transparent focus:border-pink-100 focus:bg-white h-32 outline-none resize-none transition-all font-medium text-gray-700"
-                />
+                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Notas Pessoais</label>
+                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Como você se sente..." className="w-full p-5 bg-gray-50/50 rounded-3xl border-2 border-transparent focus:border-pink-100 focus:bg-white h-32 outline-none resize-none transition-all font-medium text-gray-700" />
               </div>
-              <button 
-                onClick={saveNote}
-                className="w-full py-5 gradient-pink text-white font-black rounded-[2rem] shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg"
-              >
-                Salvar Saúde
-              </button>
+              <button onClick={saveNote} className="w-full py-5 gradient-pink text-white font-black rounded-[2rem] shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg">Salvar Notas</button>
             </div>
           </div>
         </div>
