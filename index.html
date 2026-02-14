@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Luna - Controle Menstrual Privado</title>
+    <title>Luna - Controle Menstrual</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,13 +12,19 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #fffafb;
+            color: #374151;
         }
         .gradient-pink {
             background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
         }
-        /* Custom scrollbar for a better feel */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         ::-webkit-scrollbar-track {
             background: #fff5f6;

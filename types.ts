@@ -2,7 +2,7 @@
 export interface PeriodEntry {
   id: string;
   startDate: string; // ISO string
-  endDate?: string;  // ISO string
+  endDate: string;   // ISO string
   duration: number;
 }
 
