@@ -114,25 +114,11 @@ const App: React.FC = () => {
   }, [newPeriodStart, newPeriodEnd]);
 
   const handleDurationChange = (val: number) => {
-    setNewPeriodDuration(val);
+    const safeVal = Math.max(1, isNaN(val) ? 1 : val);
+    setNewPeriodDuration(safeVal);
     if (newPeriodStart) {
-      const newEnd = addDays(parseISO(newPeriodStart), val - 1);
+      const newEnd = addDays(parseISO(newPeriodStart), safeVal - 1);
       setNewPeriodEnd(format(newEnd, 'yyyy-MM-dd'));
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    if (!("Notification" in window)) {
-      alert("Seu navegador não suporta notificações nativas.");
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      setProfile(prev => ({ ...prev, notificationsEnabled: true }));
-      setTempProfile(prev => ({ ...prev, notificationsEnabled: true }));
-    } else {
-      alert("A permissão foi negada. Você pode alterar isso nas configurações do seu navegador.");
     }
   };
 
@@ -220,20 +206,12 @@ const App: React.FC = () => {
 
   const getPhaseInfo = (phase: CyclePhase) => {
     switch(phase) {
-      case CyclePhase.MENSTRUAL: return "Fase de renovação. Seu corpo está eliminando o revestimento uterino. Descanse e hidrate-se.";
-      case CyclePhase.FOLLICULAR: return "Energia em ascensão! Seus níveis de estrogênio estão aumentando, preparando um novo óvulo.";
-      case CyclePhase.OVULATORY: return "Pico de fertilidade. Ótimo momento para atividades sociais e exercícios intensos.";
-      case CyclePhase.LUTEAL: return "Momento de introspecção. Seus níveis de progesterona sobem. Pratique o autocuidado.";
+      case CyclePhase.MENSTRUAL: return "Seu corpo está se renovando. Priorize descanso, chás quentes e hidratação.";
+      case CyclePhase.FOLLICULAR: return "Energia subindo! Bom momento para novos projetos e atividades físicas.";
+      case CyclePhase.OVULATORY: return "Pico de fertilidade e sociabilidade. Você pode se sentir mais radiante.";
+      case CyclePhase.LUTEAL: return "Momento de introspecção e cuidado. Reduza o ritmo se sentir sensibilidade.";
       default: return "";
     }
-  };
-
-  const openPeriodModal = () => {
-    setNewPeriodStart(format(new Date(), 'yyyy-MM-dd'));
-    const dur = profile.defaultPeriodLength;
-    setNewPeriodDuration(dur);
-    setNewPeriodEnd(format(addDays(new Date(), dur - 1), 'yyyy-MM-dd'));
-    setShowPeriodModal(true);
   };
 
   return (
@@ -247,7 +225,7 @@ const App: React.FC = () => {
             <h1 className="text-2xl font-black tracking-tighter">Luna</h1>
           </div>
           <button 
-            onClick={openPeriodModal} 
+            onClick={() => setShowPeriodModal(true)} 
             className="bg-white text-pink-500 w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform hover:bg-pink-50"
           >
             <i className="fas fa-plus"></i>
@@ -259,16 +237,9 @@ const App: React.FC = () => {
             <div className="flex justify-center mb-2">
                <div className="relative w-32 h-32 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="64" cy="64" r="58" stroke="rgba(255,255,255,0.2)" strokeWidth="8" fill="transparent" />
                     <circle 
-                      cx="64" cy="64" r="58" 
-                      stroke="rgba(255,255,255,0.2)" 
-                      strokeWidth="8" fill="transparent" 
-                    />
-                    <circle 
-                      cx="64" cy="64" r="58" 
-                      stroke="white" 
-                      strokeWidth="8" 
-                      fill="transparent"
+                      cx="64" cy="64" r="58" stroke="white" strokeWidth="8" fill="transparent"
                       strokeDasharray={364}
                       strokeDashoffset={364 - (364 * Math.min(stats.currentDayOfCycle, stats.averageCycleLength)) / stats.averageCycleLength}
                       strokeLinecap="round"
@@ -280,24 +251,16 @@ const App: React.FC = () => {
                   </div>
                </div>
             </div>
-            
-            <p className="text-xl font-bold bg-white/20 backdrop-blur-md py-1 px-6 rounded-full inline-block">
-              {stats.phase}
-            </p>
-            
-            <p className="text-[11px] mt-4 opacity-90 max-w-[250px] mx-auto leading-relaxed italic">
-              {getPhaseInfo(stats.phase)}
-            </p>
+            <p className="text-xl font-bold bg-white/20 backdrop-blur-md py-1 px-6 rounded-full inline-block mb-2">{stats.phase}</p>
+            <p className="text-[11px] opacity-90 max-w-[250px] mx-auto leading-relaxed italic">{getPhaseInfo(stats.phase)}</p>
           </div>
         ) : (
           <div className="text-center py-10 animate-pulse relative z-10">
-            <p className="text-lg font-bold">Olá{profile.name ? `, ${profile.name}` : ''}!</p>
-            <p className="text-sm opacity-80 mt-1 px-8 leading-relaxed">Adicione seu ciclo para começar o acompanhamento.</p>
+            <p className="text-lg font-bold">Boas-vindas à Luna!</p>
+            <p className="text-sm opacity-80 mt-1 px-8 leading-relaxed">Clique no "+" para registrar seu primeiro período e começar.</p>
           </div>
         )}
-        
         <div className="absolute top-[-10%] right-[-10%] w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
       </header>
 
       <main className="px-4 -mt-8 space-y-6 relative z-20">
@@ -306,50 +269,31 @@ const App: React.FC = () => {
             {stats && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-pink-100 flex flex-col items-center text-center">
-                  <div className="w-10 h-10 bg-pink-100 text-pink-500 rounded-2xl flex items-center justify-center mb-2">
-                    <i className="fas fa-droplet"></i>
-                  </div>
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Menstruação</p>
+                  <div className="w-10 h-10 bg-pink-100 text-pink-500 rounded-2xl flex items-center justify-center mb-2"><i className="fas fa-droplet"></i></div>
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Próxima</p>
                   <p className={`text-xl font-black ${stats.daysToNextPeriod < 0 ? 'text-red-400' : 'text-gray-800'}`}>
-                    {stats.daysToNextPeriod === 0 ? "Hoje" : stats.daysToNextPeriod < 0 ? `${Math.abs(stats.daysToNextPeriod)}d Atrasada` : `Em ${stats.daysToNextPeriod} dias`}
+                    {stats.daysToNextPeriod === 0 ? "Hoje" : stats.daysToNextPeriod < 0 ? `${Math.abs(stats.daysToNextPeriod)}d Atraso` : `Em ${stats.daysToNextPeriod} dias`}
                   </p>
-                  <p className="text-[9px] font-bold text-gray-400 mt-1">
-                    Previsto: {format(parseISO(stats.nextPeriodDate), 'dd/MM')}
-                  </p>
+                  <p className="text-[9px] font-bold text-gray-400 mt-1">{format(parseISO(stats.nextPeriodDate), 'dd/MM')}</p>
                 </div>
-                
                 <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-pink-100 flex flex-col items-center text-center">
-                  <div className="w-10 h-10 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center mb-2">
-                    <i className="fas fa-sparkles"></i>
-                  </div>
-                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Fertilidade</p>
-                  <p className="text-xl font-black text-gray-800">
-                    {stats.daysToFertileWindow === 0 ? "Janela Aberta" : `Em ${stats.daysToFertileWindow} dias`}
-                  </p>
-                  <p className="text-[9px] font-bold text-gray-400 mt-1">
-                    Pico: {format(parseISO(stats.ovulationDay), 'dd/MM')}
-                  </p>
+                  <div className="w-10 h-10 bg-blue-100 text-blue-500 rounded-2xl flex items-center justify-center mb-2"><i className="fas fa-sparkles"></i></div>
+                  <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Fértil</p>
+                  <p className="text-xl font-black text-gray-800">{stats.daysToFertileWindow === 0 ? "Janela Aberta" : `Em ${stats.daysToFertileWindow} dias`}</p>
+                  <p className="text-[9px] font-bold text-gray-400 mt-1">Pico: {format(parseISO(stats.ovulationDay), 'dd/MM')}</p>
                 </div>
               </div>
             )}
 
             <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-pink-100">
               <div className="flex justify-between items-center mb-6">
-                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="w-8 h-8 rounded-full bg-pink-50 text-pink-400 flex items-center justify-center hover:bg-pink-100 transition-colors">
-                  <i className="fas fa-chevron-left text-xs"></i>
-                </button>
-                <h3 className="font-black text-gray-700 capitalize tracking-tight text-lg">
-                  {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-                </h3>
-                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="w-8 h-8 rounded-full bg-pink-50 text-pink-400 flex items-center justify-center hover:bg-pink-100 transition-colors">
-                  <i className="fas fa-chevron-right text-xs"></i>
-                </button>
+                <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="w-8 h-8 rounded-full bg-pink-50 text-pink-400 flex items-center justify-center"><i className="fas fa-chevron-left text-xs"></i></button>
+                <h3 className="font-black text-gray-700 capitalize tracking-tight text-lg">{format(currentMonth, 'MMMM yyyy', { locale: ptBR })}</h3>
+                <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="w-8 h-8 rounded-full bg-pink-50 text-pink-400 flex items-center justify-center"><i className="fas fa-chevron-right text-xs"></i></button>
               </div>
 
               <div className="grid grid-cols-7 gap-2 text-center mb-4">
-                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
-                  <span key={d} className="text-[10px] font-black text-gray-400 uppercase">{d}</span>
-                ))}
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (<span key={d} className="text-[10px] font-black text-gray-400 uppercase">{d}</span>))}
               </div>
 
               <div className="grid grid-cols-7 gap-2">
@@ -357,60 +301,37 @@ const App: React.FC = () => {
                   const dateStr = format(day, 'yyyy-MM-dd');
                   const hasNote = healthNotes.some(n => n.date === dateStr);
                   const isToday = isSameDay(day, new Date());
-                  
                   const isPeriod = entries.some(e => {
                     const start = parseISO(e.startDate);
                     const diff = differenceInDays(day, start);
                     return diff >= 0 && diff < e.duration;
                   });
-
                   const isPredicted = stats && !isPeriod && (() => {
                     const next = parseISO(stats.nextPeriodDate);
                     const diff = differenceInDays(day, next);
                     return diff >= 0 && diff < stats.averagePeriodLength;
                   })();
-
                   const isFertile = stats && (() => {
                     const start = parseISO(stats.fertileWindowStart);
                     const end = parseISO(stats.fertileWindowEnd);
                     return day >= start && day <= end;
                   })();
-
                   const isOvulation = stats && isSameDay(day, parseISO(stats.ovulationDay));
 
                   return (
-                    <button 
-                      key={day.toISOString()} 
-                      onClick={() => handleDayClick(day)}
-                      className={`aspect-square flex flex-col items-center justify-center rounded-2xl relative transition-all active:scale-90
+                    <button key={dateStr} onClick={() => handleDayClick(day)} className={`aspect-square flex flex-col items-center justify-center rounded-2xl relative transition-all active:scale-90
                         ${isPeriod ? 'bg-pink-400 text-white shadow-md' : ''}
                         ${isPredicted ? 'bg-pink-100 text-pink-600' : ''}
                         ${isFertile && !isPeriod ? 'ring-2 ring-blue-100 bg-blue-50/40' : ''}
-                        ${!isPeriod && !isPredicted && !isFertile ? 'hover:bg-gray-50' : ''}
                         ${isToday && !isPeriod ? 'ring-2 ring-pink-500 ring-offset-2' : ''}
-                      `}
-                    >
-                      <span className={`text-sm font-bold ${isToday && isPeriod ? 'underline decoration-2 underline-offset-2' : ''}`}>
-                        {format(day, 'd')}
-                      </span>
-                      {isOvulation && (
-                        <div className="absolute -top-1 -right-1 text-[10px] text-purple-500 drop-shadow-sm">
-                          <i className="fas fa-heart animate-pulse"></i>
-                        </div>
-                      )}
-                      {hasNote && (
-                        <div className={`absolute bottom-1 w-1.5 h-1.5 rounded-full ${isPeriod ? 'bg-white' : 'bg-pink-300'} shadow-sm`}></div>
-                      )}
+                        ${!isPeriod && !isPredicted && !isFertile ? 'hover:bg-gray-50' : ''}
+                      `}>
+                      <span className="text-sm font-bold">{format(day, 'd')}</span>
+                      {isOvulation && <div className="absolute -top-1 -right-1 text-[10px] text-purple-500"><i className="fas fa-heart"></i></div>}
+                      {hasNote && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isPeriod ? 'bg-white' : 'bg-pink-300'}`}></div>}
                     </button>
                   );
                 })}
-              </div>
-
-              <div className="mt-8 grid grid-cols-2 gap-y-3 gap-x-2 text-[10px] text-gray-500 font-bold uppercase tracking-widest bg-gray-50/50 p-4 rounded-3xl">
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-pink-400 rounded-full"></div> Menstruação</div>
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-pink-100 rounded-full"></div> Previsão</div>
-                <div className="flex items-center gap-2"><div className="w-2.5 h-2.5 bg-blue-100 rounded-full"></div> Período Fértil</div>
-                <div className="flex items-center gap-2 text-purple-500"><i className="fas fa-heart text-[8px]"></i> Ovulação</div>
               </div>
             </section>
           </>
@@ -421,90 +342,41 @@ const App: React.FC = () => {
             <div className="flex justify-between items-center px-2">
               <h2 className="text-xl font-black text-gray-800 tracking-tight">Histórico</h2>
               <div className="flex bg-pink-50 rounded-2xl p-1">
-                <button 
-                  onClick={() => setHistorySubTab('periods')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${historySubTab === 'periods' ? 'bg-white text-pink-500 shadow-sm' : 'text-pink-300'}`}
-                >
-                  Ciclos
-                </button>
-                <button 
-                  onClick={() => setHistorySubTab('notes')}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${historySubTab === 'notes' ? 'bg-white text-pink-500 shadow-sm' : 'text-pink-300'}`}
-                >
-                  Notas
-                </button>
+                <button onClick={() => setHistorySubTab('periods')} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${historySubTab === 'periods' ? 'bg-white text-pink-500 shadow-sm' : 'text-pink-300'}`}>Ciclos</button>
+                <button onClick={() => setHistorySubTab('notes')} className={`px-4 py-2 rounded-xl text-xs font-black transition-all ${historySubTab === 'notes' ? 'bg-white text-pink-500 shadow-sm' : 'text-pink-300'}`}>Notas</button>
               </div>
             </div>
 
             {historySubTab === 'periods' ? (
-              entries.length === 0 ? (
-                <div className="bg-white p-12 rounded-[2.5rem] text-center text-gray-400 border border-dashed border-pink-200">
-                  <i className="fas fa-calendar-times text-4xl mb-4 opacity-20"></i>
-                  <p>Nenhum ciclo registrado.</p>
-                </div>
-              ) : (
+              entries.length === 0 ? <p className="text-center text-gray-400 py-20">Nenhum registro ainda.</p> : (
                 <div className="space-y-3">
-                  {entries.map(entry => (
-                    <div key={entry.id} className="bg-white p-5 rounded-3xl shadow-sm border border-pink-50 flex justify-between items-center group">
-                      <div className="flex items-center gap-4">
-                        <div className="bg-pink-100 p-3 rounded-2xl text-pink-500 group-hover:scale-110 transition-transform">
-                          <i className="fas fa-calendar-day"></i>
-                        </div>
-                        <div>
-                          <p className="font-bold text-gray-800">
-                            {format(parseISO(entry.startDate), "dd 'de' MMMM yyyy", { locale: ptBR })}
-                          </p>
-                          <p className="text-xs text-gray-400 font-bold uppercase tracking-tighter">
-                            Duração: {entry.duration} dias
-                          </p>
-                        </div>
+                  {entries.map(e => (
+                    <div key={e.id} className="bg-white p-5 rounded-3xl shadow-sm border border-pink-50 flex justify-between items-center">
+                      <div>
+                        <p className="font-bold text-gray-800">{format(parseISO(e.startDate), "dd 'de' MMMM", { locale: ptBR })}</p>
+                        <p className="text-xs text-gray-400 font-bold uppercase">{e.duration} dias de fluxo</p>
                       </div>
-                      <button onClick={() => removeEntry(entry.id)} className="w-10 h-10 rounded-xl hover:bg-red-50 text-gray-300 hover:text-red-400 transition-all flex items-center justify-center">
-                        <i className="far fa-trash-alt"></i>
-                      </button>
+                      <button onClick={() => removeEntry(e.id)} className="text-gray-200 hover:text-red-400"><i className="far fa-trash-alt"></i></button>
                     </div>
                   ))}
                 </div>
               )
             ) : (
-              healthNotes.length === 0 ? (
-                <div className="bg-white p-12 rounded-[2.5rem] text-center text-gray-400 border border-dashed border-pink-200">
-                  <i className="fas fa-notes-medical text-4xl mb-4 opacity-20"></i>
-                  <p>Nenhuma nota de saúde.</p>
-                </div>
-              ) : (
+              healthNotes.length === 0 ? <p className="text-center text-gray-400 py-20">Nenhuma nota registrada.</p> : (
                 <div className="space-y-3">
-                  {[...healthNotes].sort((a,b) => b.date.localeCompare(a.date)).map(note => (
-                    <div key={note.id} className="bg-white p-5 rounded-3xl shadow-sm border border-pink-50 space-y-3">
-                      <div className="flex justify-between items-start">
+                  {healthNotes.sort((a,b) => b.date.localeCompare(a.date)).map(n => (
+                    <div key={n.id} className="bg-white p-5 rounded-3xl shadow-sm border border-pink-50">
+                      <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-3">
-                           <div className="text-3xl bg-pink-50 w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner">{note.mood}</div>
-                           <div>
-                              <p className="font-bold text-gray-800">{format(parseISO(note.date), "dd 'de' MMMM", { locale: ptBR })}</p>
-                              <p className="text-[10px] font-black uppercase text-pink-400">{note.mood ? MOODS.find(m => m.emoji === note.mood)?.label : 'Sem humor'}</p>
-                           </div>
+                          <span className="text-3xl">{n.mood}</span>
+                          <div>
+                            <p className="font-bold text-gray-800">{format(parseISO(n.date), "dd/MM")}</p>
+                            <p className="text-[10px] font-black uppercase text-pink-400">{n.symptoms.length} sintomas</p>
+                          </div>
                         </div>
-                        <button onClick={() => removeNote(note.id)} className="text-gray-200 hover:text-red-400 p-2">
-                           <i className="far fa-trash-alt"></i>
-                        </button>
+                        <button onClick={() => removeNote(n.id)} className="text-gray-200 hover:text-red-400"><i className="far fa-trash-alt"></i></button>
                       </div>
-                      {note.symptoms && note.symptoms.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {note.symptoms.map(sId => {
-                            const s = SYMPTOMS_LIST.find(sl => sl.id === sId);
-                            return s ? (
-                              <span key={sId} className="bg-gray-50 text-[9px] font-black text-gray-500 px-3 py-1.5 rounded-full flex items-center gap-1.5 uppercase border border-gray-100">
-                                <i className={`fas ${s.icon} text-pink-300`}></i> {s.label}
-                              </span>
-                            ) : null;
-                          })}
-                        </div>
-                      )}
-                      {note.notes && (
-                        <p className="text-sm text-gray-600 italic bg-gray-50/50 p-3 rounded-2xl border-l-4 border-pink-200">
-                          "{note.notes}"
-                        </p>
-                      )}
+                      {n.notes && <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-2xl italic">"{n.notes}"</p>}
                     </div>
                   ))}
                 </div>
@@ -515,154 +387,84 @@ const App: React.FC = () => {
 
         {activeTab === 'profile' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-            <div className="flex justify-between items-center px-2">
+             <div className="flex justify-between items-center px-2">
               <h2 className="text-xl font-black text-gray-800 tracking-tight">Seu Perfil</h2>
-              {!isEditingProfile && (
-                <button 
-                  onClick={() => setIsEditingProfile(true)}
-                  className="text-pink-500 text-sm font-bold flex items-center gap-2 bg-pink-50 px-4 py-2 rounded-xl"
-                >
-                  <i className="fas fa-edit"></i> Editar
-                </button>
-              )}
+              {!isEditingProfile && <button onClick={() => setIsEditingProfile(true)} className="text-pink-500 text-sm font-bold bg-pink-50 px-4 py-2 rounded-xl">Editar</button>}
             </div>
 
-            {isEditingProfile ? (
-              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-pink-100 space-y-6">
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-pink-100 space-y-8">
+              {isEditingProfile ? (
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Nome</label>
-                    <input 
-                      type="text"
-                      placeholder="Seu nome"
-                      value={tempProfile.name}
-                      onChange={(e) => setTempProfile({...tempProfile, name: e.target.value})}
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-2 ring-gray-100 focus:ring-pink-200 outline-none font-bold text-gray-700"
-                    />
+                  <input type="text" placeholder="Seu nome" value={tempProfile.name} onChange={e => setTempProfile({...tempProfile, name: e.target.value})} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" />
+                  <select value={tempProfile.goal} onChange={e => setTempProfile({...tempProfile, goal: e.target.value as any})} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold">
+                    <option value="track">Acompanhar ciclo</option>
+                    <option value="conceive">Engravidar</option>
+                    <option value="avoid">Evitar gravidez</option>
+                  </select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <input type="number" placeholder="Ciclo Médio" value={tempProfile.defaultCycleLength} onChange={e => setTempProfile({...tempProfile, defaultCycleLength: parseInt(e.target.value) || 28})} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" />
+                    <input type="number" placeholder="Período Médio" value={tempProfile.defaultPeriodLength} onChange={e => setTempProfile({...tempProfile, defaultPeriodLength: parseInt(e.target.value) || 5})} className="w-full p-4 bg-gray-50 rounded-2xl outline-none font-bold" />
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Objetivo</label>
-                    <select 
-                      value={tempProfile.goal}
-                      onChange={(e) => setTempProfile({...tempProfile, goal: e.target.value as any})}
-                      className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-2 ring-gray-100 focus:ring-pink-200 outline-none font-bold text-gray-700"
-                    >
-                      <option value="track">Acompanhar ciclo</option>
-                      <option value="conceive">Engravidar</option>
-                      <option value="avoid">Evitar gravidez</option>
-                    </select>
+                  <div className="flex gap-2">
+                    <button onClick={() => setIsEditingProfile(false)} className="flex-1 py-4 bg-gray-100 rounded-2xl font-bold">Cancelar</button>
+                    <button onClick={handleSaveProfile} className="flex-1 py-4 gradient-pink text-white rounded-2xl font-black shadow-lg">Salvar</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-6">
+                    <div className="w-20 h-20 bg-gradient-to-tr from-pink-400 to-pink-200 rounded-[2rem] flex items-center justify-center text-white text-3xl shadow-lg ring-4 ring-pink-50"><i className="fas fa-user"></i></div>
+                    <div>
+                        <h3 className="text-2xl font-black text-gray-800">{profile.name || "Usuária Luna"}</h3>
+                        <p className="text-sm font-bold text-pink-400 uppercase tracking-widest">{getGoalLabel(profile.goal)}</p>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Ciclo Médio (Dias)</label>
-                      <input 
-                        type="number"
-                        value={tempProfile.defaultCycleLength}
-                        onChange={(e) => setTempProfile({...tempProfile, defaultCycleLength: parseInt(e.target.value) || 28})}
-                        className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-2 ring-gray-100 focus:ring-pink-200 outline-none font-bold text-gray-700"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] font-black uppercase text-gray-400 mb-2">Período Médio (Dias)</label>
-                      <input 
-                        type="number"
-                        value={tempProfile.defaultPeriodLength}
-                        onChange={(e) => setTempProfile({...tempProfile, defaultPeriodLength: parseInt(e.target.value) || 5})}
-                        className="w-full p-4 bg-gray-50 rounded-2xl border-none ring-2 ring-gray-100 focus:ring-pink-200 outline-none font-bold text-gray-700"
-                      />
-                    </div>
+                      <div className="bg-pink-50/50 p-4 rounded-3xl text-center"><p className="text-[10px] font-black uppercase text-gray-400">Ciclo Médio</p><p className="text-2xl font-black text-gray-800">{stats?.averageCycleLength || profile.defaultCycleLength}d</p></div>
+                      <div className="bg-blue-50/50 p-4 rounded-3xl text-center"><p className="text-[10px] font-black uppercase text-gray-400">Fluxo Médio</p><p className="text-2xl font-black text-gray-800">{stats?.averagePeriodLength || profile.defaultPeriodLength}d</p></div>
                   </div>
-                </div>
-                <div className="flex gap-3">
-                  <button 
-                    onClick={() => { setIsEditingProfile(false); setTempProfile(profile); }}
-                    className="flex-1 py-4 rounded-2xl text-gray-400 font-bold hover:bg-gray-50 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button 
-                    onClick={handleSaveProfile}
-                    className="flex-1 py-4 gradient-pink text-white font-black rounded-2xl shadow-lg shadow-pink-200 active:scale-95 transition-transform"
-                  >
-                    Salvar
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-pink-100 space-y-8">
-                <div className="flex items-center gap-6">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-pink-400 to-pink-200 rounded-[2rem] flex items-center justify-center text-white text-3xl shadow-lg ring-4 ring-pink-50">
-                      <i className="fas fa-user"></i>
-                  </div>
-                  <div>
-                      <h3 className="text-2xl font-black text-gray-800">{profile.name || "Usuária Luna"}</h3>
-                      <p className="text-sm font-bold text-pink-400 uppercase tracking-widest">{getGoalLabel(profile.goal)}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-pink-50/50 p-4 rounded-3xl text-center">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Ciclo</p>
-                      <p className="text-2xl font-black text-gray-800">{stats?.averageCycleLength || profile.defaultCycleLength} <span className="text-sm font-bold">dias</span></p>
-                    </div>
-                    <div className="bg-blue-50/50 p-4 rounded-3xl text-center">
-                      <p className="text-[10px] font-black uppercase text-gray-400 mb-1">Média Fluxo</p>
-                      <p className="text-2xl font-black text-gray-800">{stats?.averagePeriodLength || profile.defaultPeriodLength} <span className="text-sm font-bold">dias</span></p>
-                    </div>
-                </div>
-                <button 
-                    onClick={() => { if (window.confirm("Apagar todos os dados permanentemente?")) { localStorage.clear(); window.location.reload(); } }}
-                    className="w-full py-4 rounded-2xl text-red-400 font-bold hover:bg-red-50 transition-colors border-2 border-red-50"
-                >
-                  Limpar Dados Locais
-                </button>
-              </div>
-            )}
+                  <button onClick={() => { if(window.confirm("Limpar todos os dados locais?")) { localStorage.clear(); window.location.reload(); }}} className="w-full py-4 text-red-400 font-bold border-2 border-red-50 rounded-2xl">Resetar Aplicativo</button>
+                  <div className="text-center"><p className="text-[10px] text-gray-300 uppercase font-black tracking-widest">Luna • 100% Local e Privado</p></div>
+                </>
+              )}
+            </div>
           </div>
         )}
       </main>
 
-      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/90 backdrop-blur-xl border-t border-gray-100 px-10 py-5 flex justify-between items-center rounded-t-[3rem] shadow-[0_-20px_60px_rgba(0,0,0,0.1)] z-50">
-        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+      <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white/95 backdrop-blur-xl border-t border-gray-100 px-10 py-5 flex justify-between items-center rounded-t-[3rem] shadow-[0_-15px_40px_rgba(0,0,0,0.05)] z-50">
+        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-pink-500 scale-110' : 'text-gray-300'}`}>
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'home' ? 'bg-pink-50' : ''}`}><i className="fas fa-house-user text-xl"></i></div>
-          <span className="text-[9px] font-black uppercase tracking-tighter">Início</span>
+          <span className="text-[9px] font-black uppercase">Início</span>
         </button>
-        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+        <button onClick={() => setActiveTab('history')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'history' ? 'text-pink-500 scale-110' : 'text-gray-300'}`}>
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'history' ? 'bg-pink-50' : ''}`}><i className="fas fa-calendar-alt text-xl"></i></div>
-          <span className="text-[9px] font-black uppercase tracking-tighter">Histórico</span>
+          <span className="text-[9px] font-black uppercase">Histórico</span>
         </button>
-        <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'profile' ? 'text-pink-500 scale-110' : 'text-gray-300 hover:text-gray-400'}`}>
+        <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'profile' ? 'text-pink-500 scale-110' : 'text-gray-300'}`}>
           <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${activeTab === 'profile' ? 'bg-pink-50' : ''}`}><i className="fas fa-user text-xl"></i></div>
-          <span className="text-[9px] font-black uppercase tracking-tighter">Perfil</span>
+          <span className="text-[9px] font-black uppercase">Perfil</span>
         </button>
       </nav>
 
       {showPeriodModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-md">
           <div className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-gray-800 tracking-tight">Registro de Fluxo</h2>
-              <button onClick={() => setShowPeriodModal(false)} className="text-gray-300 hover:text-gray-600"><i className="fas fa-times text-xl"></i></button>
-            </div>
+            <h2 className="text-2xl font-black text-gray-800 mb-6">Novo Registro</h2>
             <div className="space-y-5 mb-8">
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Início</label>
-                <input type="date" value={newPeriodStart} onChange={(e) => setNewPeriodStart(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700" />
-              </div>
+              <input type="date" value={newPeriodStart} onChange={e => setNewPeriodStart(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-transparent focus:border-pink-200 outline-none font-bold" />
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Término</label>
-                  <input type="date" value={newPeriodEnd} onChange={(e) => setNewPeriodEnd(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl border-2 border-pink-50 focus:ring-4 focus:border-pink-300 transition-all outline-none font-bold text-gray-700" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest">Duração</label>
-                  <div className="flex items-center bg-pink-50/50 rounded-2xl border-2 border-pink-50 px-4">
-                    <input type="number" value={newPeriodDuration} onChange={(e) => handleDurationChange(parseInt(e.target.value) || 1)} className="w-full py-4 bg-transparent outline-none font-bold text-gray-700" min="1" />
-                    <span className="text-[10px] font-black text-pink-300 uppercase">Dias</span>
-                  </div>
+                <input type="date" value={newPeriodEnd} onChange={e => setNewPeriodEnd(e.target.value)} className="w-full p-4 bg-pink-50/50 rounded-2xl outline-none font-bold" />
+                <div className="flex items-center bg-pink-50/50 rounded-2xl px-4 font-bold">
+                   <input type="number" value={newPeriodDuration} onChange={e => handleDurationChange(parseInt(e.target.value))} className="w-full bg-transparent outline-none" min="1" />
+                   <span className="text-[10px] text-pink-300">DIAS</span>
                 </div>
               </div>
             </div>
-            <button onClick={addEntry} className="w-full py-5 gradient-pink text-white font-black rounded-3xl shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg">Salvar Período</button>
+            <div className="flex gap-2">
+              <button onClick={() => setShowPeriodModal(false)} className="flex-1 py-5 bg-gray-100 rounded-3xl font-bold">Cancelar</button>
+              <button onClick={addEntry} className="flex-1 py-5 gradient-pink text-white font-black rounded-3xl shadow-xl">Salvar</button>
+            </div>
           </div>
         </div>
       )}
@@ -670,37 +472,27 @@ const App: React.FC = () => {
       {showNoteModal && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40 backdrop-blur-md">
           <div className="bg-white w-full max-w-md rounded-t-[3.5rem] p-8 shadow-2xl animate-in slide-in-from-bottom duration-400 max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-8">
-              <div><h2 className="text-2xl font-black text-gray-800 tracking-tight">Saúde Hoje</h2><p className="text-sm text-pink-500 font-bold uppercase tracking-widest mt-1">{format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p></div>
-              <button onClick={() => setShowNoteModal(false)} className="w-10 h-10 rounded-2xl bg-gray-50 text-gray-300 hover:text-gray-500 flex items-center justify-center transition-colors"><i className="fas fa-times"></i></button>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-gray-800">Saúde & Bem-estar</h2>
+              <button onClick={() => setShowNoteModal(false)} className="text-gray-300"><i className="fas fa-times text-xl"></i></button>
             </div>
-            <div className="space-y-8">
-              <div>
-                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Humor</label>
-                <div className="grid grid-cols-5 gap-y-4 gap-x-2 bg-pink-50/30 p-4 rounded-[2.5rem]">
-                  {MOODS.map(m => (
-                    <button key={m.emoji} onClick={() => setSelectedMood(m.emoji)} className={`group flex flex-col items-center gap-1.5 p-2 rounded-2xl transition-all ${selectedMood === m.emoji ? 'bg-white shadow-md scale-110 ring-2 ring-pink-100' : 'opacity-40 hover:opacity-100 hover:scale-105'}`}>
-                      <span className="text-3xl filter drop-shadow-sm">{m.emoji}</span>
-                      <span className="text-[8px] font-black uppercase text-center leading-tight text-gray-500">{m.label}</span>
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-5 gap-2">
+                {MOODS.map(m => (
+                  <button key={m.emoji} onClick={() => setSelectedMood(m.emoji)} className={`p-2 rounded-2xl transition-all ${selectedMood === m.emoji ? 'bg-pink-100 ring-2 ring-pink-200' : 'opacity-40'}`}>
+                    <span className="text-2xl">{m.emoji}</span>
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Sintomas</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {SYMPTOMS_LIST.map(symp => (
-                    <button key={symp.id} onClick={() => toggleSymptom(symp.id)} className={`flex items-center gap-3 p-4 rounded-2xl transition-all border-2 font-bold text-xs ${selectedSymptoms.includes(symp.id) ? 'bg-pink-100 border-pink-200 text-pink-600' : 'bg-white border-gray-50 text-gray-400 hover:bg-gray-50'}`}>
-                      <i className={`fas ${symp.icon}`}></i>{symp.label}
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-2 gap-2">
+                {SYMPTOMS_LIST.map(s => (
+                  <button key={s.id} onClick={() => toggleSymptom(s.id)} className={`p-3 rounded-2xl border-2 text-xs font-bold flex items-center gap-2 ${selectedSymptoms.includes(s.id) ? 'bg-pink-50 border-pink-200 text-pink-500' : 'border-gray-50'}`}>
+                    <i className={`fas ${s.icon}`}></i>{s.label}
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="block text-xs font-black text-gray-400 mb-4 uppercase tracking-widest">Notas Pessoais</label>
-                <textarea value={noteText} onChange={(e) => setNoteText(e.target.value)} placeholder="Como você se sente..." className="w-full p-5 bg-gray-50/50 rounded-3xl border-2 border-transparent focus:border-pink-100 focus:bg-white h-32 outline-none resize-none transition-all font-medium text-gray-700" />
-              </div>
-              <button onClick={saveNote} className="w-full py-5 gradient-pink text-white font-black rounded-[2rem] shadow-xl shadow-pink-200 active:scale-95 transition-transform text-lg">Salvar Notas</button>
+              <textarea value={noteText} onChange={e => setNoteText(e.target.value)} placeholder="Notas adicionais..." className="w-full p-4 bg-gray-50 rounded-2xl h-24 outline-none font-medium" />
+              <button onClick={saveNote} className="w-full py-5 gradient-pink text-white rounded-3xl font-black shadow-lg">Salvar Notas</button>
             </div>
           </div>
         </div>
